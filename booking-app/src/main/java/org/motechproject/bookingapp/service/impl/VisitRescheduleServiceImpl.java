@@ -9,6 +9,8 @@ import org.motechproject.bookingapp.domain.VisitRescheduleDto;
 import org.motechproject.bookingapp.domain.VisitScheduleOffset;
 import org.motechproject.bookingapp.exception.LimitationExceededException;
 import org.motechproject.bookingapp.repository.ClinicDataService;
+import org.motechproject.bookingapp.repository.ScreeningDataService;
+import org.motechproject.bookingapp.repository.UnscheduledVisitDataService;
 import org.motechproject.bookingapp.repository.VisitBookingDetailsDataService;
 import org.motechproject.bookingapp.service.VisitRescheduleService;
 import org.motechproject.bookingapp.service.VisitScheduleOffsetService;
@@ -42,6 +44,12 @@ public class VisitRescheduleServiceImpl implements VisitRescheduleService {
 
     @Autowired
     private VisitBookingDetailsDataService visitBookingDetailsDataService;
+
+    @Autowired
+    private ScreeningDataService screeningDataService;
+
+    @Autowired
+    private UnscheduledVisitDataService unscheduledVisitDataService;
 
     @Autowired
     private VisitDataService visitDataService;
@@ -127,6 +135,7 @@ public class VisitRescheduleServiceImpl implements VisitRescheduleService {
                 throw new LimitationExceededException("Too many Patients at the same time");
             }
         }
+        checkCapacity(dto.getPlannedDate(), clinic);
     }
 
     private void validateDate(VisitRescheduleDto dto, Visit visit) {
@@ -173,6 +182,18 @@ public class VisitRescheduleServiceImpl implements VisitRescheduleService {
             return null;
         } else {
             return objectMapper.readValue(json, new TypeReference<LinkedHashMap>() {});  //NO CHECKSTYLE WhitespaceAround
+        }
+    }
+
+    private void checkCapacity(LocalDate date, Clinic clinic) {
+        if(clinic != null && date != null) {
+            int screeningCount = screeningDataService.findByDateAndClinicId(date, clinic.getId()).size();
+            int unscheduledVisitCount = unscheduledVisitDataService.findByClinicIdAndDate(date, clinic.getId()).size();
+            int visitBookingDetailsCount = visitBookingDetailsDataService.findByBookingPlannedDateAndClinicId(date, clinic.getId()).size();
+            int visitCount = screeningCount + visitBookingDetailsCount + unscheduledVisitCount;
+            if (visitCount >= clinic.getMaxCapacityByDay()) {
+                throw new LimitationExceededException("The limit of the capacity by day in the clinic is reached");
+            }
         }
     }
 }

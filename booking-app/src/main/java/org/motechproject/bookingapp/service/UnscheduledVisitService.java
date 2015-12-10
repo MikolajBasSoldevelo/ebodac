@@ -11,5 +11,5 @@ public interface UnscheduledVisitService {
 
     Records<UnscheduledVisitDto> getUnscheduledVisitsRecords(BookingGridSettings settings) throws IOException;
 
-    UnscheduledVisitDto addOrUpdate(UnscheduledVisitDto unscheduledVisitDto);
+    UnscheduledVisitDto addOrUpdate(UnscheduledVisitDto unscheduledVisitDto, Boolean ignoreLimitation);
 }

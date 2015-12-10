@@ -25,28 +25,35 @@
             $scope.reloadSelects();
         };
 
-        $scope.saveUnscheduledVisit = function() {
-            var confirmMsg;
-
+        $scope.saveUnscheduledVisit = function(ignoreLimitation) {
             function sendRequest() {
-                $http.post('../booking-app/unscheduledVisits/new/', $scope.form.dto)
+                $http.post('../booking-app/unscheduledVisits/new/' + ignoreLimitation, $scope.form.dto)
                     .success(function(data){
-                        $("#unscheduledVisit").trigger('reloadGrid');
-                        $scope.form.updated = data;
-                        $scope.form.dto = undefined;
+                        if (data && (typeof(data) === 'string')) {
+                            jConfirm($scope.msg('bookingApp.uncheduledVisit.confirmMsg', data), $scope.msg('bookingApp.uncheduledVisit.confirmTitle'),
+                                function (response) {
+                                    if (response) {
+                                        $scope.saveUnscheduledVisit(true);
+                                    }
+                                });
+                        } else {
+                            $("#unscheduleVisit").trigger('reloadGrid');
+                            $scope.form.dto = undefined;
+                        }
                     })
                     .error(function(response) {
                         motechAlert('bookingApp.uncheduledVisit.scheduleError', 'bookingApp.error', response);
                     });
             }
 
-            if ($scope.form.type == "add") {
-                confirmMsg = "bookingApp.uncheduledVisit.confirm.shouldScheduleScreening";
-            } else if ($scope.form.type == "edit") {
-                confirmMsg = "bookingApp.uncheduledVisit.confirm.shouldUpdateScreening";
+            if (ignoreLimitation) {
+                sendRequest();
+            } else {
+                motechConfirm("bookingApp.uncheduleVisit.confirm.ScheduleScreening", "bookingApp.confirm",
+                    function(confirmed) {
+                        sendRequest();
+                })
             }
-
-            sendRequest();
         };
 
         $scope.formIsFilled = function() {

@@ -4,9 +4,13 @@ package org.motechproject.bookingapp.service.impl;
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
+import org.joda.time.LocalDate;
+import org.motechproject.bookingapp.domain.Clinic;
 import org.motechproject.bookingapp.domain.UnscheduledVisit;
 import org.motechproject.bookingapp.domain.UnscheduledVisitDto;
+import org.motechproject.bookingapp.exception.LimitationExceededException;
 import org.motechproject.bookingapp.repository.ClinicDataService;
+import org.motechproject.bookingapp.repository.ScreeningDataService;
 import org.motechproject.bookingapp.repository.UnscheduledVisitDataService;
 import org.motechproject.bookingapp.repository.VisitBookingDetailsDataService;
 import org.motechproject.bookingapp.service.UnscheduledVisitService;
@@ -36,6 +40,9 @@ public class UnscheduledVisitServiceImpl implements UnscheduledVisitService {
     private UnscheduledVisitDataService unscheduledVisitDataService;
 
     @Autowired
+    private ScreeningDataService screeningDataService;
+
+    @Autowired
     private SubjectDataService subjectDataService;
 
     @Autowired
@@ -54,8 +61,11 @@ public class UnscheduledVisitServiceImpl implements UnscheduledVisitService {
     }
 
     @Override
-    public UnscheduledVisitDto addOrUpdate(UnscheduledVisitDto dto) {
+    public UnscheduledVisitDto addOrUpdate(UnscheduledVisitDto dto, Boolean ignoreLimitation) {
 
+        if(!ignoreLimitation) {
+            checkCapacity(dto.getDate(), clinicDataService.findById(dto.getClinicId()));
+        }
         if (StringUtils.isEmpty(dto.getId())) {
             return add(dto);
         } else {
@@ -96,6 +106,16 @@ public class UnscheduledVisitServiceImpl implements UnscheduledVisitService {
             return null;
         } else {
             return objectMapper.readValue(json, new TypeReference<LinkedHashMap>() {}); //NO CHECKSTYLE WhitespaceAround
+        }
+    }
+
+    private void checkCapacity(LocalDate date, Clinic clinic) {
+        int screeningCount = screeningDataService.findByDateAndClinicId(date, clinic.getId()).size();
+        int unscheduledVisitCount = unscheduledVisitDataService.findByClinicIdAndDate(date, clinic.getId()).size();
+        int visitBookingDetailsCount = visitBookingDetailsDataService.findByBookingPlannedDateAndClinicId(date, clinic.getId()).size();
+        int visitCount = screeningCount + visitBookingDetailsCount + unscheduledVisitCount;
+        if(visitCount >= clinic.getMaxCapacityByDay()) {
+            throw new LimitationExceededException("The limit of the capacity by day in the clinic is reached");
         }
     }
 }

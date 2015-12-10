@@ -9,6 +9,8 @@ import org.motechproject.bookingapp.domain.PrimeVaccinationScheduleDto;
 import org.motechproject.bookingapp.domain.VisitBookingDetails;
 import org.motechproject.bookingapp.exception.LimitationExceededException;
 import org.motechproject.bookingapp.repository.ClinicDataService;
+import org.motechproject.bookingapp.repository.ScreeningDataService;
+import org.motechproject.bookingapp.repository.UnscheduledVisitDataService;
 import org.motechproject.bookingapp.repository.VisitBookingDetailsDataService;
 import org.motechproject.bookingapp.service.PrimeVaccinationScheduleService;
 import org.motechproject.bookingapp.web.domain.BookingGridSettings;
@@ -36,6 +38,12 @@ public class PrimeVaccinationScheduleServiceImpl implements PrimeVaccinationSche
 
     @Autowired
     private ClinicDataService clinicDataService;
+
+    @Autowired
+    private ScreeningDataService screeningDataService;
+
+    @Autowired
+    private UnscheduledVisitDataService unscheduledVisitDataService;
 
     @Autowired
     private VisitDataService visitDataService;
@@ -142,6 +150,7 @@ public class PrimeVaccinationScheduleServiceImpl implements PrimeVaccinationSche
                 throw new LimitationExceededException("Too many Patients at the same time");
             }
         }
+        checkCapacity(dto.getDate(), clinicDataService.findById(dto.getClinicId()));
     }
 
     private void validateDate(PrimeVaccinationScheduleDto dto) {
@@ -174,5 +183,15 @@ public class PrimeVaccinationScheduleServiceImpl implements PrimeVaccinationSche
             }
         }
         return null;
+    }
+
+    private void checkCapacity(LocalDate date, Clinic clinic) {
+        int screeningCount = screeningDataService.findByDateAndClinicId(date, clinic.getId()).size();
+        int unscheduledVisitCount = unscheduledVisitDataService.findByClinicIdAndDate(date, clinic.getId()).size();
+        int visitBookingDetailsCount = visitBookingDetailsDataService.findByBookingPlannedDateAndClinicId(date, clinic.getId()).size();
+        int visitCount = screeningCount + visitBookingDetailsCount + unscheduledVisitCount;
+        if(visitCount >= clinic.getMaxCapacityByDay()) {
+            throw new LimitationExceededException("The limit of the capacity by day in the clinic is reached");
+        }
     }
 }

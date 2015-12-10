@@ -3,6 +3,7 @@ package org.motechproject.bookingapp.web;
 import org.motechproject.bookingapp.constants.BookingAppConstants;
 import org.motechproject.bookingapp.domain.UnscheduledVisit;
 import org.motechproject.bookingapp.domain.UnscheduledVisitDto;
+import org.motechproject.bookingapp.exception.LimitationExceededException;
 import org.motechproject.bookingapp.helper.DtoLookupHelper;
 import org.motechproject.bookingapp.service.UnscheduledVisitService;
 import org.motechproject.bookingapp.web.domain.BookingGridSettings;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -50,10 +52,15 @@ public class UnscheduledVisitController {
         return unscheduledVisitService.getUnscheduledVisitsRecords(DtoLookupHelper.changeLookupForScreeningAndUnscheduled(settings));
     }
 
-    @RequestMapping(value = "/new/", method = RequestMethod.POST, consumes = "application/json")
+    @RequestMapping(value = "/new/{ignoreLimitation}", method = RequestMethod.POST, consumes = "application/json")
     @ResponseBody
-    public Object addOrUpdateUnscheduled(@RequestBody UnscheduledVisitDto unscheduledVisitDto) {
-        return unscheduledVisitService.addOrUpdate(unscheduledVisitDto);
+    public Object addOrUpdateUnscheduled(@PathVariable Boolean ignoreLimitation,
+                                         @RequestBody UnscheduledVisitDto unscheduledVisitDto) {
+        try {
+            return unscheduledVisitService.addOrUpdate(unscheduledVisitDto, ignoreLimitation);
+        } catch (LimitationExceededException e) {
+            return e.getMessage();
+        }
     }
 
     @RequestMapping(value = "/getLookupsForUnscheduled", method = RequestMethod.GET)
