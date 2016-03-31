@@ -14,6 +14,52 @@ if(!$('#inputMaskJs').length) {
     $("head").append(s);
 }
 
+//$scope.selectFilter = function(value) {
+//    $scope.selectedFilter = $scope.filters[value];
+//    if (value !== 5) {
+//        $scope.reloadData();
+//    }
+//};
+//
+//$scope.reloadData = function() {
+//    $scope.loadData();
+//}
+
+if ($scope.selectedEntity.name === "Participant") {
+
+    $(document).ready(function() {
+        $(".btn-group").append("<button type='button'>button<button>");
+    });
+
+    $scope.showExportButton = false;
+    $timeout (function() {
+        $scope.showFilters = true;
+        $scope.showFiltersButton = true;
+    }, 100);
+
+    $scope.filters = [{
+        name: $scope.msg('ebodac.screening.yesterday'),
+        dateFilter: "YESTERDAY"
+    },{
+        name: $scope.msg('ebodac.screening.lastSevenDays'),
+        dateFilter: "LAST_7_DAYS"
+    },{
+        name: $scope.msg('ebodac.screening.lastWeek'),
+        dateFilter: "LAST_WEEK"
+    },{
+        name: $scope.msg('ebodac.screening.lastThirtyDays'),
+        dateFilter: "LAST_30_DAYS"
+    },{
+        name: $scope.msg('ebodac.screening.lastMonth'),
+        dateFilter: "LAST_MONTH"
+    },{
+        name: $scope.msg('ebodac.screening.dateRange'),
+        dateFilter: "DATE_RANGE"
+    }];
+
+    $scope.selectedFilter = $scope.filters[0];
+}
+
 if ($scope.selectedEntity.name === "Participant" || $scope.selectedEntity.name === "Visit") {
     $scope.showBackToEntityListButton = false;
 } else {
